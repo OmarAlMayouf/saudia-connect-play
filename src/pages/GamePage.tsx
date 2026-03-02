@@ -28,7 +28,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { History } from "lucide-react";
+import { History, ChevronLeft } from "lucide-react";
 
 const GamePage = () => {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -329,6 +329,7 @@ const GamePage = () => {
   const isMyTeamTurn = currentPlayer?.team === game.currentTeam;
   const isCurrentTeamSpymaster = isSpymaster && isMyTeamTurn;
   const canGuess = game.turnPhase === "guessing";
+  const canEndTurn = canGuess && isMyTeamTurn && !isSpymaster;
 
   return (
     <div className="min-h-screen flex flex-col relative bg-background">
@@ -355,7 +356,7 @@ const GamePage = () => {
 
         {game.phase === "playing" && (
           <>
-            <GameHeader game={game} onEndTurn={handleEndTurn} />
+            <GameHeader game={game} />
 
             {/* ── Main play area ── */}
             <div className="flex-1 flex overflow-hidden">
@@ -447,6 +448,23 @@ const GamePage = () => {
                   canGuess={canGuess}
                 />
 
+                {/* ── End turn button (md+ only) ── */}
+                {canEndTurn && (
+                  <div className="hidden md:flex justify-center px-3 pb-3 pt-2 shrink-0">
+                    <button
+                      onClick={handleEndTurn}
+                      className={`flex items-center gap-2 text-sm font-bold px-6 py-2.5 rounded-xl border transition-all duration-150 active:scale-95 shadow-sm ${
+                        game.currentTeam === "red"
+                          ? "bg-team-red/10 border-team-red/40 text-team-red hover:bg-team-red/20 hover:border-team-red/60"
+                          : "bg-team-blue/10 border-team-blue/40 text-team-blue hover:bg-team-blue/20 hover:border-team-blue/60"
+                      }`}
+                    >
+                      إنهاء الدور
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
                 {/* ── Mobile bottom bar ── */}
                 <div className="md:hidden flex items-center justify-between gap-2 px-2 pb-2 pt-1 border-t border-border/30 bg-card/60 backdrop-blur-sm shrink-0">
                   {/* Compact team scores */}
@@ -454,6 +472,23 @@ const GamePage = () => {
                     <TeamSidebar game={game} team="red" compact />
                     <TeamSidebar game={game} team="blue" compact />
                   </div>
+
+                  {/* End turn — center, only for eligible players */}
+                  {canEndTurn ? (
+                    <button
+                      onClick={handleEndTurn}
+                      className={`flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl border transition-all duration-150 active:scale-95 shrink-0 ${
+                        game.currentTeam === "red"
+                          ? "bg-team-red/10 border-team-red/40 text-team-red hover:bg-team-red/20"
+                          : "bg-team-blue/10 border-team-blue/40 text-team-blue hover:bg-team-blue/20"
+                      }`}
+                    >
+                      إنهاء الدور
+                      <ChevronLeft className="w-3 h-3" />
+                    </button>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
 
                   {/* History sheet trigger */}
                   <Sheet>

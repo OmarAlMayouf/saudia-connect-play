@@ -1,12 +1,11 @@
 import { GameState } from "@/lib/gameState";
-import { Timer, ChevronLeft } from "lucide-react";
+import { Timer } from "lucide-react";
 
 interface GameHeaderProps {
   game: GameState;
-  onEndTurn: () => void;
 }
 
-const GameHeader = ({ game, onEndTurn }: GameHeaderProps) => {
+const GameHeader = ({ game }: GameHeaderProps) => {
   const minutes = Math.floor(game.timer / 60);
   const seconds = game.timer % 60;
   const isLowTime = game.timer <= 15;
@@ -67,15 +66,7 @@ const GameHeader = ({ game, onEndTurn }: GameHeaderProps) => {
             </div>
           )}
 
-          {isGuessing && (
-            <button
-              onClick={onEndTurn}
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-xl border border-border/60 bg-background/60 hover:bg-secondary/80 hover:border-border transition-all duration-150 active:scale-95 whitespace-nowrap"
-            >
-              إنهاء الدور
-              <ChevronLeft className="w-3 h-3" />
-            </button>
-          )}
+          {/* end-turn moved to bottom bar on mobile */}
         </div>
       </div>
     </div>
