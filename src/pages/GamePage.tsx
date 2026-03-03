@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   GameState,
@@ -36,11 +36,6 @@ const GamePage = () => {
   const [game, setGame] = useState<GameState | null>(null);
   const [showTransition, setShowTransition] = useState(false);
   const [transitionTeam, setTransitionTeam] = useState<Team>("red");
-  const [assassinModal, setAssassinModal] = useState<{
-    losingTeam: Team;
-    word: string;
-    onDone: () => void;
-  } | null>(null);
   const [timerEndedModal, setTimerEndedModal] = useState<{
     team: Team;
     phase: "hint" | "guessing";
@@ -149,26 +144,20 @@ const GamePage = () => {
     newState = { ...newState, history: appendHistory(newState, guessEntry) };
 
     if (card.type === "assassin") {
-      // Step 1: save intermediate state — card is revealed but phase stays "playing"
-      // so GameOverDialog does NOT render yet
-      const intermediateState: typeof newState = {
+      // Save the revealed card state (keeping phase "playing" so GameOverDialog
+      // does NOT appear yet) AND set assassinReveal so every client shows the modal.
+      const intermediateState: GameState = {
         ...newState,
         phase: "playing",
-      };
-      saveGame(intermediateState);
-
-      // Step 2: after flip animation, show assassin modal
-      setTimeout(() => {
-        setAssassinModal({
+        assassinReveal: {
           losingTeam: prevTeam,
           word: card.word.word,
-          onDone: () => {
-            // Step 3: after modal, commit the real finished state
-            setAssassinModal(null);
-            saveGame(newState);
-          },
-        });
-      }, 650);
+          triggeredAt: Date.now(),
+        },
+      };
+      saveGame(intermediateState);
+      // The actual "finished" state is committed by each client's modal onComplete
+      // (only the host should do it to avoid race conditions — handled below).
     } else {
       // Normal card: save immediately so flip plays in real-time for all
       saveGame(newState);
@@ -271,6 +260,35 @@ const GamePage = () => {
   const currentPlayer = game?.players.find((p) => p.id === playerId);
   const isHost = currentPlayer?.isHost;
   const { history } = useGameHistory(game);
+
+  // Tracks whether we are currently showing the assassin modal locally
+  const [assassinModalActive, setAssassinModalActive] = useState(false);
+  // Remember which triggeredAt we already handled so we don't re-show
+  const handledAssassinTs = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!game?.assassinReveal) return;
+    const { triggeredAt } = game.assassinReveal;
+    if (handledAssassinTs.current === triggeredAt) return;
+    // Wait for the card-flip animation before showing the modal
+    const t = setTimeout(() => {
+      handledAssassinTs.current = triggeredAt;
+      setAssassinModalActive(true);
+    }, 650);
+    return () => clearTimeout(t);
+  }, [game?.assassinReveal]);
+
+  const handleAssassinModalDone = useCallback(async () => {
+    setAssassinModalActive(false);
+    if (!game || !isHost) return;
+    // Only the host commits the "finished" state and clears assassinReveal
+    const finishedState: GameState = {
+      ...game,
+      phase: "finished",
+      assassinReveal: null,
+    };
+    await updateGameSession(game.roomCode, finishedState);
+  }, [game, isHost]);
 
   useEffect(() => {
     if (!game || !isHost) return;
@@ -533,11 +551,12 @@ const GamePage = () => {
         />
       )}
 
-      {assassinModal && (
+      {assassinModalActive && game.assassinReveal && (
         <AssassinModal
-          losingTeam={assassinModal.losingTeam}
-          word={assassinModal.word}
-          onComplete={assassinModal.onDone}
+          losingTeam={game.assassinReveal.losingTeam}
+          word={game.assassinReveal.word}
+          isLosingTeam={currentPlayer?.team === game.assassinReveal.losingTeam}
+          onComplete={handleAssassinModalDone}
         />
       )}
 

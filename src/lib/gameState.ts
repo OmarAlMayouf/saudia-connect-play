@@ -64,6 +64,13 @@ export type HistoryEntry =
       timestamp: number;
     };
 
+export interface AssassinReveal {
+  losingTeam: Team;
+  word: string;
+  /** Timestamp so all clients show at roughly the same time */
+  triggeredAt: number;
+}
+
 export interface GameState {
   roomCode: string;
   phase: GamePhase;
@@ -81,6 +88,8 @@ export interface GameState {
   guessesRemaining: number;
   lobbySettings: LobbySettings;
   history: HistoryEntry[];
+  /** Set when the assassin card is revealed; cleared after modal finishes */
+  assassinReveal?: AssassinReveal | null;
 }
 
 export interface Player {

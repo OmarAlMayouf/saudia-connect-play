@@ -5,12 +5,15 @@ interface AssassinModalProps {
   losingTeam: Team;
   word: string;
   onComplete: () => void;
+  /** Whether the viewer's own team is the losing (assassin-choosing) team */
+  isLosingTeam?: boolean;
 }
 
 const AssassinModal = ({
   losingTeam,
   word,
   onComplete,
+  isLosingTeam,
 }: AssassinModalProps) => {
   const [phase, setPhase] = useState<"enter" | "hold" | "exit">("enter");
 
@@ -58,7 +61,9 @@ const AssassinModal = ({
         </div>
 
         {/* Word */}
-        <div className="text-white/40 text-sm font-medium mb-1">اخترتم</div>
+        <div className="text-white/40 text-sm font-medium mb-1">
+          {isLosingTeam ? "اخترتم" : "اختاروا"}
+        </div>
         <div className="text-white text-2xl font-black mb-4 tracking-wide">
           {word}
         </div>
